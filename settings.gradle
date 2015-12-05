@@ -1,0 +1,3 @@
+rootProject.name = 'threadstate'
+
+include rootProject.name + '-core'
