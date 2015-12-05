@@ -2,7 +2,7 @@ package example.threadstate.core.memento;
 
 import java.util.List;
 
-class CompositeThreadStateMemento implements ThreadStateMemento {
+final class CompositeThreadStateMemento implements ThreadStateMemento {
 
     private final List<ThreadStateMemento> mementos;
 
@@ -12,12 +12,16 @@ class CompositeThreadStateMemento implements ThreadStateMemento {
 
     @Override
     public void restore() {
-        mementos.forEach(ThreadStateMemento::restore);
+        for (ThreadStateMemento memento: mementos) {
+            memento.restore();
+        }
     }
 
     @Override
     public void cleanup() {
-        mementos.forEach(ThreadStateMemento::cleanup);
+        for (int i = mementos.size() - 1; i >= 0; i--) {
+            mementos.get(i).cleanup();
+        }
     }
 
 }

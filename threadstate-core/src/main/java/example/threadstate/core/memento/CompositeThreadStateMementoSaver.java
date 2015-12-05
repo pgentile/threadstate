@@ -2,7 +2,6 @@ package example.threadstate.core.memento;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 class CompositeThreadStateMementoSaver implements ThreadStateMementoSaver {
 
@@ -14,10 +13,10 @@ class CompositeThreadStateMementoSaver implements ThreadStateMementoSaver {
 
     @Override
     public ThreadStateMemento save() {
-        final List<ThreadStateMemento> mementos = savers.stream()
-                .map(ThreadStateMementoSaver::save)
-                .collect(Collectors.toList());
-
+        final List<ThreadStateMemento> mementos = new ArrayList<>(savers.size());
+        for (ThreadStateMementoSaver saver : savers) {
+            mementos.add(saver.save());
+        }
         return new CompositeThreadStateMemento(mementos);
     }
 
