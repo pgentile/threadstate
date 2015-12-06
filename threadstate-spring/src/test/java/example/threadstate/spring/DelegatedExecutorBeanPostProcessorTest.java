@@ -27,7 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(MockitoJUnitRunner.class)
-public class WrappedTaskExecutorBeanPostProcessorTest {
+public class DelegatedExecutorBeanPostProcessorTest {
 
     @Mock
     private TaskWrapper taskWrapper;
@@ -88,8 +88,8 @@ public class WrappedTaskExecutorBeanPostProcessorTest {
         private TaskWrapper taskWrapper;
 
         @Bean
-        public WrappedTaskExecutorBeanPostProcessor wrappedTaskExecutorBeanPostProcessor() {
-            return new WrappedTaskExecutorBeanPostProcessor(taskWrapper);
+        public DelegatedExecutorBeanPostProcessor wrappedTaskExecutorBeanPostProcessor() {
+            return new DelegatedExecutorBeanPostProcessor(taskWrapper);
         }
 
         @Bean

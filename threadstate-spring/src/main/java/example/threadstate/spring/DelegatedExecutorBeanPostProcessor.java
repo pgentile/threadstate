@@ -13,16 +13,16 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class WrappedTaskExecutorBeanPostProcessor implements BeanPostProcessor {
+public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(WrappedTaskExecutorBeanPostProcessor.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DelegatedExecutorBeanPostProcessor.class);
 
     private TaskWrapper taskWrapper;
 
-    public WrappedTaskExecutorBeanPostProcessor() {
+    public DelegatedExecutorBeanPostProcessor() {
     }
 
-    public WrappedTaskExecutorBeanPostProcessor(TaskWrapper taskWrapper) {
+    public DelegatedExecutorBeanPostProcessor(TaskWrapper taskWrapper) {
         this.taskWrapper = taskWrapper;
     }
 
@@ -46,8 +46,9 @@ public class WrappedTaskExecutorBeanPostProcessor implements BeanPostProcessor {
             return bean;
         }
 
-        // Already wrapped
-        if (bean instanceof DelegatedExecutor) {
+        // Already wrapped or not processable
+        if (bean instanceof DelegatedExecutor || !isProcessable(bean, beanName)) {
+            LOGGER.info("Executor '{}' will not be wrapped", beanName);
             return bean;
         }
 
@@ -60,6 +61,10 @@ public class WrappedTaskExecutorBeanPostProcessor implements BeanPostProcessor {
             return new DelegatedExecutorService((ExecutorService) bean, taskWrapper);
         }
         return new DelegatedExecutor((Executor) bean, taskWrapper);
+    }
+
+    protected boolean isProcessable(Object bean, String beanName) {
+        return true;
     }
 
 }

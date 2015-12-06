@@ -26,7 +26,7 @@ public class DelegatedExecutor implements Executor {
             try {
                 callable.call();
             } catch (final Exception e) {
-                // FIXME Replace with another exception...
+                // TODO Replace with another exception?
                 throw new RuntimeException(e);
             }
         };

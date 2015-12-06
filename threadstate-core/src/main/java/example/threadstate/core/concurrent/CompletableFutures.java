@@ -17,7 +17,7 @@ public final class CompletableFutures {
     private static final Logger LOGGER = LoggerFactory.getLogger(CompletableFutures.class);
 
     private CompletableFutures() {
-        // Ne rien faire, c'est une classe d'utilitaires
+        // Utility class
     }
 
     public static Throwable unwrapException(final Throwable exception) {
@@ -60,9 +60,8 @@ public final class CompletableFutures {
     }
 
     public static <T> CompletableFuture<T> await(
-            final long delay,
-            final TimeUnit timeUnit,
-            final ScheduledExecutorService scheduledExecutor
+        final ScheduledExecutorService scheduledExecutor, final long delay,
+        final TimeUnit timeUnit
     ) {
         final CompletableFuture<T> future = new CompletableFuture<>();
         scheduledExecutor.schedule(() -> future.complete(null), delay, timeUnit);

@@ -8,6 +8,7 @@ public class JerseyConfig extends ResourceConfig {
 
     public JerseyConfig() {
         register(HelloResource.class);
+        register(RequestInfoFilter.class);
     }
 
 }
