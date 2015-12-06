@@ -11,6 +11,6 @@ Build
 
 Build with Gradle (tested against 2.9)
 
-```shell
+```sh
 gradle build
 ```
