@@ -12,5 +12,5 @@ Build
 Build with Gradle (tested against 2.9)
 
 ```sh
-gradle build
+./gradlew build
 ```
