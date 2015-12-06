@@ -4,6 +4,8 @@ import example.threadstate.core.executors.DelegatedExecutor;
 import example.threadstate.core.executors.DelegatedExecutorService;
 import example.threadstate.core.executors.DelegatedScheduledExecutorService;
 import example.threadstate.core.executors.TaskWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
@@ -12,6 +14,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class WrappedTaskExecutorBeanPostProcessor implements BeanPostProcessor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(WrappedTaskExecutorBeanPostProcessor.class);
 
     private TaskWrapper taskWrapper;
 
@@ -46,6 +50,8 @@ public class WrappedTaskExecutorBeanPostProcessor implements BeanPostProcessor {
         if (bean instanceof DelegatedExecutor) {
             return bean;
         }
+
+        LOGGER.info("Wrapping executor '{}'", beanName);
 
         if (bean instanceof ScheduledExecutorService) {
             return new DelegatedScheduledExecutorService((ScheduledExecutorService) bean, taskWrapper);

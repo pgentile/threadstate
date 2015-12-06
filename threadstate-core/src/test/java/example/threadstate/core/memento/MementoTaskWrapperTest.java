@@ -57,7 +57,7 @@ public class MementoTaskWrapperTest {
         // given
         given(saver.save()).willReturn(memento);
 
-        final Exception exception = new Exception("Failure");
+        final Exception exception = new Exception();
         given(callable.call()).willThrow(exception);
 
         // when
@@ -80,7 +80,7 @@ public class MementoTaskWrapperTest {
         // given
         given(saver.save()).willReturn(memento);
 
-        final RuntimeException exception = new RuntimeException("Failure");
+        final RuntimeException exception = new RuntimeException();
         doThrow(exception).when(memento).restore();
 
         // when
