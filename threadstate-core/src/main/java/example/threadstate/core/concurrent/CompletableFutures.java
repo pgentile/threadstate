@@ -60,7 +60,8 @@ public final class CompletableFutures {
     }
 
     public static <T> CompletableFuture<T> await(
-        final ScheduledExecutorService scheduledExecutor, final long delay,
+        final ScheduledExecutorService scheduledExecutor,
+        final long delay,
         final TimeUnit timeUnit
     ) {
         final CompletableFuture<T> future = new CompletableFuture<>();
