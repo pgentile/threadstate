@@ -7,17 +7,23 @@ import example.threadstate.core.executors.TaskWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BiPredicate;
 
-public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor {
+public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor, BeanNameAware {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DelegatedExecutorBeanPostProcessor.class);
 
+    private String processorBeanName;
+
     private TaskWrapper taskWrapper;
+
+    private BiPredicate<Object, String> beanSelector = (bean, beanName) -> true;
 
     public DelegatedExecutorBeanPostProcessor() {
     }
@@ -26,8 +32,17 @@ public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor {
         this.taskWrapper = taskWrapper;
     }
 
+    @Override
+    public void setBeanName(String name) {
+        this.processorBeanName = name;
+    }
+
     public void setTaskWrapper(TaskWrapper taskWrapper) {
         this.taskWrapper = taskWrapper;
+    }
+
+    public void setBeanSelector(BiPredicate<Object, String> beanSelector) {
+        this.beanSelector = beanSelector;
     }
 
     @Override
@@ -47,12 +62,12 @@ public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor {
         }
 
         // Already wrapped or not processable
-        if (bean instanceof DelegatedExecutor || !isProcessable(bean, beanName)) {
-            LOGGER.info("Executor '{}' will not be wrapped", beanName);
+        if (bean instanceof DelegatedExecutor || !beanSelector.test(bean, beanName)) {
+            LOGGER.info("Processor {}: Executor '{}' will not be wrapped", processorBeanName, beanName);
             return bean;
         }
 
-        LOGGER.info("Wrapping executor '{}'", beanName);
+        LOGGER.info("Processor {}: Wrapping executor '{}'", processorBeanName, beanName);
 
         if (bean instanceof ScheduledExecutorService) {
             return new DelegatedScheduledExecutorService((ScheduledExecutorService) bean, taskWrapper);
@@ -61,10 +76,6 @@ public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor {
             return new DelegatedExecutorService((ExecutorService) bean, taskWrapper);
         }
         return new DelegatedExecutor((Executor) bean, taskWrapper);
-    }
-
-    protected boolean isProcessable(Object bean, String beanName) {
-        return true;
     }
 
 }

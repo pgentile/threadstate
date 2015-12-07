@@ -3,7 +3,9 @@ package example.threadstate.examples;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -20,14 +22,25 @@ public class HelloResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(HelloResource.class);
 
     @Autowired
+    @Qualifier("defaultExecutor")
     private ExecutorService executor;
+
+    @Autowired
+    @Qualifier("asyncTaskExecutor")
+    private ExecutorService asyncTaskExecutor;
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public void home(@Suspended AsyncResponse asyncResponse) {
         executor.submit(() -> {
             LOGGER.info("Sending response in other thread...");
+            LOGGER.info("Request content: {}", RequestContextHolder.getRequestAttributes());
             asyncResponse.resume("Home");
+        });
+
+        asyncTaskExecutor.submit(() -> {
+            LOGGER.info("Sending stats...");
+            LOGGER.info("Request content: {}", RequestContextHolder.getRequestAttributes());
         });
 
         LOGGER.info("Detached!");

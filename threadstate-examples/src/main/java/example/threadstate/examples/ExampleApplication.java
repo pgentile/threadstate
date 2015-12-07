@@ -24,24 +24,37 @@ public class ExampleApplication {
     }
 
     @Bean
-    public ThreadStateMementoSaver threadStateMementoSaver() {
-        final MDCMementoSaver mdcMementoSaver = new MDCMementoSaver();
-        final RequestContextMementoSaver requestContextMementoSaver = new RequestContextMementoSaver();
-        return mdcMementoSaver.andThen(requestContextMementoSaver);
-    }
-
-    @Bean
     public ExecutorService defaultExecutor() {
         final ThreadFactory threadFactory = new ThreadFactoryBuilder()
-            .setNameFormat("main-executor-%d")
+            .setNameFormat("default-%d")
             .build();
         return Executors.newCachedThreadPool(threadFactory);
     }
 
     @Bean
-    public DelegatedExecutorBeanPostProcessor mementoExecutorBeanPostProcessor() {
-        final MementoTaskWrapper taskWrapper = new MementoTaskWrapper(threadStateMementoSaver());
-        return new DelegatedExecutorBeanPostProcessor(taskWrapper);
+    public ExecutorService asyncTaskExecutor() {
+        final ThreadFactory threadFactory = new ThreadFactoryBuilder()
+            .setNameFormat("async-task-%d")
+            .build();
+        return Executors.newCachedThreadPool(threadFactory);
+    }
+
+    @Bean
+    public DelegatedExecutorBeanPostProcessor requestMementoExecutorBeanPostProcessor() {
+        final ThreadStateMementoSaver mementoSaver = new MDCMementoSaver().andThen(new RequestContextMementoSaver());
+        final MementoTaskWrapper taskWrapper = new MementoTaskWrapper(mementoSaver);
+        final DelegatedExecutorBeanPostProcessor beanPostProcessor = new DelegatedExecutorBeanPostProcessor(taskWrapper);
+        beanPostProcessor.setBeanSelector((bean, beanName) -> "defaultExecutor".equals(beanName));
+        return beanPostProcessor;
+    }
+
+    @Bean
+    public DelegatedExecutorBeanPostProcessor asyncMementoExecutorBeanPostProcessor() {
+        final ThreadStateMementoSaver mementoSaver = new MDCMementoSaver();
+        final MementoTaskWrapper taskWrapper = new MementoTaskWrapper(mementoSaver);
+        final DelegatedExecutorBeanPostProcessor beanPostProcessor = new DelegatedExecutorBeanPostProcessor(taskWrapper);
+        beanPostProcessor.setBeanSelector((bean, beanName) -> "asyncTaskExecutor".equals(beanName));
+        return beanPostProcessor;
     }
 
 }
