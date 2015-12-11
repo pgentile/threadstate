@@ -1,5 +1,7 @@
 package example.threadstate.examples;
 
+import example.threadstate.core.concurrent.CompletableFutures;
+import example.threadstate.core.retry.AsyncRetryExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +28,10 @@ public class HelloResource {
     private ExecutorService executor;
 
     @Autowired
-    @Qualifier("asyncTaskExecutor")
-    private ExecutorService asyncTaskExecutor;
+    private AsyncRetryExecutor asyncRetryExecutor;
+
+    @Autowired
+    private PublisherService publisherService;
 
     @GET
     @Produces(MediaType.TEXT_PLAIN)
@@ -38,10 +42,12 @@ public class HelloResource {
             asyncResponse.resume("Home");
         });
 
-        asyncTaskExecutor.submit(() -> {
-            LOGGER.info("Sending stats...");
-            LOGGER.info("Request content: {}", RequestContextHolder.getRequestAttributes());
-        });
+        asyncRetryExecutor.submit(publisherService::publish)
+            .whenComplete((ignored, e) -> {
+                if (e != null) {
+                    LOGGER.error("Publish failed", CompletableFutures.unwrapException(e));
+                }
+            });
 
         LOGGER.info("Detached!");
     }

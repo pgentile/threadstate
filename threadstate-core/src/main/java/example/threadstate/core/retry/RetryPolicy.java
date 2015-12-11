@@ -11,7 +11,7 @@ public interface RetryPolicy {
     }
 
     static RetryPolicy backoff(final long durationMs) {
-        return count -> OptionalLong.of((long) Math.pow(2, durationMs * (count - 1)));
+        return count -> OptionalLong.of(durationMs * (long) Math.pow(2, (count - 1)));
     }
 
     OptionalLong getWaitTime(int count);
@@ -31,10 +31,10 @@ public interface RetryPolicy {
         final RetryPolicy that = this;
         return count -> {
             final OptionalLong durationMs = that.getWaitTime(count);
-            if (durationMs.isPresent()) {
-                return OptionalLong.of((long) (durationMs.getAsLong() + (random.nextDouble() * jitterMs)));
+            if (!durationMs.isPresent()) {
+                return OptionalLong.empty();
             }
-            return OptionalLong.empty();
+            return OptionalLong.of((long) (durationMs.getAsLong() + (random.nextDouble() * jitterMs)));
         };
     }
 

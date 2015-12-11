@@ -1,6 +1,8 @@
 package example.threadstate.core.retry;
 
 import example.threadstate.core.concurrent.CompletableFutures;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
@@ -8,9 +10,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public class AsyncRetryExecutor {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AsyncRetryExecutor.class);
 
     private final ScheduledExecutorService scheduledExecutor;
 
@@ -20,37 +25,66 @@ public class AsyncRetryExecutor {
 
     private final RetryPolicy retryPolicy;
 
-    public AsyncRetryExecutor(ScheduledExecutorService scheduledExecutor, Executor primaryExecutor, Executor retryExecutor, RetryPolicy retryPolicy) {
+    private Predicate<Exception> abortRetryPredicate = ignored -> false;
+
+    public AsyncRetryExecutor(
+        final ScheduledExecutorService scheduledExecutor,
+        final Executor primaryExecutor,
+        final Executor retryExecutor,
+        final RetryPolicy retryPolicy
+    ) {
         this.scheduledExecutor = scheduledExecutor;
         this.primaryExecutor = primaryExecutor;
         this.retryExecutor = retryExecutor;
         this.retryPolicy = retryPolicy;
     }
 
-    public AsyncRetryExecutor(ScheduledExecutorService scheduledExecutor, Executor executor, RetryPolicy retryPolicy) {
+    public AsyncRetryExecutor(
+        final ScheduledExecutorService scheduledExecutor,
+        final Executor executor,
+        final RetryPolicy retryPolicy
+    ) {
         this(scheduledExecutor, executor, executor, retryPolicy);
     }
 
-    public <T> CompletableFuture<T> execute(Supplier<T> supplier) {
+    public void setAbortRetryPredicate(Predicate<Exception> abortRetryPredicate) {
+        this.abortRetryPredicate = abortRetryPredicate;
+    }
+
+    public <T> CompletableFuture<T> execute(final Supplier<T> supplier) {
         return CompletableFuture.supplyAsync(supplier, primaryExecutor)
             .thenApply(CompletableFuture::completedFuture)
             .exceptionally(e -> handleException(supplier, 1, e))
             .thenCompose(Function.identity());
     }
 
-    private <T> CompletableFuture<T> handleException(final Supplier<T> supplier, int count, Throwable exception) {
+    public CompletableFuture<?> submit(Runnable runnable) {
+        return execute(() -> {
+            runnable.run();
+            return null;
+        });
+    }
+
+    private <T> CompletableFuture<T> handleException(final Supplier<T> supplier, final int retryCount, final Throwable exception) {
         final Throwable realException = CompletableFutures.unwrapException(exception);
 
-        OptionalLong waitDurationMs = retryPolicy.getWaitTime(count);
-        if (waitDurationMs.isPresent()) {
-            return CompletableFutures.await(scheduledExecutor, waitDurationMs.getAsLong(), TimeUnit.MILLISECONDS)
-                .thenApplyAsync(ignored -> supplier.get(), retryExecutor)
-                .thenApply(CompletableFuture::completedFuture)
-                .exceptionally(e -> handleException(supplier, count + 1, e))
-                .thenCompose(Function.identity());
+        if (realException instanceof Error || abortRetryPredicate.test((Exception) realException)) {
+            LOGGER.debug("Failed to execute task, will not retry", realException);
+            return CompletableFutures.completedExceptionally(new AbortRetryException(realException));
         }
 
-        return CompletableFutures.completedExceptionally(new MaxRetryException(count, realException));
+        final OptionalLong waitDurationMs = retryPolicy.getWaitTime(retryCount);
+        if (!waitDurationMs.isPresent()) {
+            LOGGER.debug("Failed to execute task, got to max retries count of {}", retryCount - 1, realException);
+            return CompletableFutures.completedExceptionally(new MaxRetryException(retryCount, realException));
+        }
+
+        LOGGER.debug("Failed to execute task, retrying after {} ms", waitDurationMs.getAsLong(), realException);
+        return CompletableFutures.await(scheduledExecutor, waitDurationMs.getAsLong(), TimeUnit.MILLISECONDS)
+            .thenApplyAsync(ignored -> supplier.get(), retryExecutor)
+            .thenApply(CompletableFuture::completedFuture)
+            .exceptionally(e -> handleException(supplier, retryCount + 1, e))
+            .thenCompose(Function.identity());
     }
 
 }

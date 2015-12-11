@@ -63,7 +63,7 @@ public class DelegatedExecutorBeanPostProcessor implements BeanPostProcessor, Be
 
         // Already wrapped or not processable
         if (bean instanceof DelegatedExecutor || !beanSelector.test(bean, beanName)) {
-            LOGGER.info("Processor {}: Executor '{}' will not be wrapped", processorBeanName, beanName);
+            LOGGER.debug("Processor {}: Executor '{}' will not be wrapped", processorBeanName, beanName);
             return bean;
         }
 
