@@ -42,7 +42,7 @@ class BaseJavaProjectPlugin implements Plugin<Project> {
             slf4j  : '1.7.21',
             junit  : '4.12',
             mockito: '1.10.19',
-            assertj: '3.2.0',
+            assertj: '3.5.2',
         ]
 
         project.dependencies {
@@ -82,6 +82,14 @@ class BaseJavaProjectPlugin implements Plugin<Project> {
 subprojects {
 
     apply plugin: BaseJavaProjectPlugin
+
+}
+
+project("${rootProject.name}-core") {
+
+    dependencies {
+        compile group: 'io.javaslang', name: 'javaslang', version: '2.0.3'
+    }
 
 }
 

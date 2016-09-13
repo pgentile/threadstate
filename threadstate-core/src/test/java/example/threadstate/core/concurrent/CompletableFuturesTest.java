@@ -1,10 +1,14 @@
 package example.threadstate.core.concurrent;
 
+import javaslang.control.Try;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
@@ -12,6 +16,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static example.threadstate.core.concurrent.CompletableFutures.*;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
 
@@ -23,7 +28,7 @@ public class CompletableFuturesTest {
         final List<CompletableFuture<Object>> futures = Collections.emptyList();
 
         // when
-        final CompletableFuture<List<Object>> merged = CompletableFutures.merge(futures);
+        final CompletableFuture<List<Object>> merged = merge(futures);
 
         // then
         assertThat(merged).isCompletedWithValueMatching(List::isEmpty, "empty list");
@@ -39,7 +44,7 @@ public class CompletableFuturesTest {
             .collect(Collectors.toList());
 
         // when
-        final CompletableFuture<List<Object>> merged = CompletableFutures.merge(futures);
+        final CompletableFuture<List<Object>> merged = merge(futures);
 
         // then
         assertThat(merged).isCompletedWithValue(items);
@@ -55,7 +60,7 @@ public class CompletableFuturesTest {
             .collect(Collectors.toList());
 
         // when
-        final CompletableFuture<List<Object>> merged = CompletableFutures.merge(futures);
+        final CompletableFuture<List<Object>> merged = merge(futures);
 
         // then
         assertThat(merged).isCompletedWithValue(items);
@@ -65,15 +70,47 @@ public class CompletableFuturesTest {
     public void should_not_be_completed_on_merge_uncompleted_items() throws Exception {
         // given
         final List<CompletableFuture<Object>> futures = Arrays.asList(
-            new CompletableFuture<>(),
+            CompletableFuture.completedFuture(new Object()),
             new CompletableFuture<>()
         );
 
         // when
-        final CompletableFuture<List<Object>> merged = CompletableFutures.merge(futures);
+        final CompletableFuture<List<Object>> merged = merge(futures);
 
         // then
         assertThat(merged).isNotDone();
+    }
+
+    @Test
+    public void should_return_map_on_merge_map_with_multiple_items() throws Exception {
+        // given
+        final Map<String, CompletableFuture<Integer>> futures = new HashMap<>();
+        futures.put("A", CompletableFuture.completedFuture(1));
+        futures.put("B", CompletableFuture.completedFuture(2));
+        futures.put("C", CompletableFuture.completedFuture(3));
+
+        // when
+        final CompletableFuture<Map<String, Integer>> merged = mergeMap(futures);
+
+        // then
+
+        final Map<String, Integer> expectedResult = new HashMap<>();
+        expectedResult.put("A", 1);
+        expectedResult.put("B", 2);
+        expectedResult.put("C", 3);
+
+        assertThat(merged).isCompletedWithValue(expectedResult);
+    }
+    @Test
+    public void should_return_empty_map_on_merge_empty_map() throws Exception {
+        // given
+        final Map<String, CompletableFuture<Integer>> futures = new HashMap<>();
+
+        // when
+        final CompletableFuture<Map<String, Integer>> merged = mergeMap(futures);
+
+        // then
+        assertThat(merged).isCompletedWithValue(Collections.emptyMap());
     }
 
     @Test(timeout = 1000L)
@@ -85,7 +122,7 @@ public class CompletableFuturesTest {
 
         // when
         final long startTimestampMs = System.currentTimeMillis();
-        final CompletableFuture<?> future = CompletableFutures.await(scheduledExecutor, waitTimeMs, TimeUnit.MILLISECONDS);
+        final CompletableFuture<?> future = await(scheduledExecutor, waitTimeMs, TimeUnit.MILLISECONDS);
         final Object result = future.join();
         final long durationMs = System.currentTimeMillis() - startTimestampMs;
 
@@ -101,7 +138,7 @@ public class CompletableFuturesTest {
         final Exception exception = new Exception();
 
         // when
-        final CompletableFuture<?> future = CompletableFutures.completedExceptionally(exception);
+        final CompletableFuture<?> future = completedExceptionally(exception);
 
         // then
         assertThat(future).isCompletedExceptionally();
@@ -114,7 +151,7 @@ public class CompletableFuturesTest {
         final CompletionException completionException = new CompletionException(causeException);
 
         // when
-        final Throwable resultException = CompletableFutures.unwrapException(completionException);
+        final Throwable resultException = unwrapException(completionException);
 
         // then
         assertThat(resultException).isSameAs(causeException);
@@ -127,7 +164,7 @@ public class CompletableFuturesTest {
         final CompletionException completionException = new CompletionException(causeException);
 
         // when
-        final Throwable resultException = CompletableFutures.unwrapException(completionException);
+        final Throwable resultException = unwrapException(completionException);
 
         // then
         assertThat(resultException).isSameAs(completionException);
@@ -139,10 +176,115 @@ public class CompletableFuturesTest {
         final Exception exception = new Exception();
 
         // when
-        final Throwable resultException = CompletableFutures.unwrapException(exception);
+        final Throwable resultException = unwrapException(exception);
 
         // then
         assertThat(resultException).isSameAs(exception);
+    }
+
+    @Test
+    public void should_not_rewrap_a_completion_exception() throws Exception {
+        // given
+        final Exception exception = new CompletionException(new RuntimeException());
+
+        // when
+        final CompletionException resultException = wrapException(exception);
+
+        // then
+        assertThat(resultException).isSameAs(exception);
+    }
+
+    @Test
+    public void should_rewrap_exception() throws Exception {
+        // given
+        final Exception exception = new RuntimeException();
+
+        // when
+        final CompletionException resultException = wrapException(exception);
+
+        // then
+        assertThat(resultException).isInstanceOf(CompletionException.class).hasCause(exception);
+    }
+
+    @Test
+    public void should_transform_failed_future_to_empty_optional() throws Exception {
+        // given
+        final CompletableFuture<String> future = completedExceptionally(new RuntimeException());
+
+        // when
+        final CompletableFuture<Optional<String>> resultFuture = future.handle(toOptional());
+
+        // then
+        assertThat(resultFuture).isCompletedWithValue(Optional.empty());
+    }
+
+    @Test
+    public void should_transform_successful_future_to_valued_optional() throws Exception {
+        // given
+        final String value = "OK";
+        final CompletableFuture<String> future = CompletableFuture.completedFuture(value);
+
+        // when
+        final CompletableFuture<Optional<String>> resultFuture = future.handle(toOptional());
+
+        // then
+        assertThat(resultFuture).isCompletedWithValue(Optional.of(value));
+    }
+
+    @Test
+    public void should_unwrap_exception_in_handle_method() throws Exception {
+        // given
+        final RuntimeException inputException = new RuntimeException();
+        final CompletableFuture<String> future = completedExceptionally(inputException);
+
+        // when
+        final CompletableFuture<Boolean> resultFuture = future.handle(withUnwrappedException((value, exception) -> {
+            return exception == inputException;
+        }));
+
+        // then
+        assertThat(resultFuture).isCompletedWithValue(true);
+    }
+
+    @Test
+    public void should_unwrap_exception_in_exceptionally_method() throws Exception {
+        // given
+        final RuntimeException inputException = new RuntimeException();
+        final CompletableFuture<Boolean> future = completedExceptionally(inputException);
+
+        // when
+        final CompletableFuture<Boolean> resultFuture = future.exceptionally(withUnwrappedException(exception -> {
+            return exception == inputException;
+        }));
+
+        // then
+        assertThat(resultFuture).isCompletedWithValue(true);
+    }
+
+    @Test
+    public void should_transform_successful_future_to_success_try() throws Exception {
+        // given
+        final String value = "OK";
+        final CompletableFuture<String> future = CompletableFuture.completedFuture(value);
+
+        // when
+        final Try<String> result = future.handle(toTry()).get();
+
+        // then
+        assertThat(result).isEqualTo(Try.success(value));
+    }
+
+    @Test
+    public void should_transform_failed_future_to_failed_try() throws Exception {
+        // given
+        final RuntimeException inputException = new RuntimeException();
+        final CompletableFuture<String> future = completedExceptionally(inputException);
+
+        // when
+        final Try<String> result = future.handle(toTry()).get();
+
+        // then
+        assertThat(result).isEqualTo(Try.failure(inputException));
     }
 
 }
