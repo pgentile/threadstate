@@ -101,6 +101,7 @@ public class CompletableFuturesTest {
 
         assertThat(merged).isCompletedWithValue(expectedResult);
     }
+
     @Test
     public void should_return_empty_map_on_merge_empty_map() throws Exception {
         // given
@@ -268,10 +269,10 @@ public class CompletableFuturesTest {
         final CompletableFuture<String> future = CompletableFuture.completedFuture(value);
 
         // when
-        final Try<String> result = future.handle(toTry()).get();
+        final CompletableFuture<Try<String>> resultFuture = future.handle(toTry());
 
         // then
-        assertThat(result).isEqualTo(Try.success(value));
+        assertThat(resultFuture).isCompletedWithValue(Try.success(value));
     }
 
     @Test
@@ -281,10 +282,10 @@ public class CompletableFuturesTest {
         final CompletableFuture<String> future = completedExceptionally(inputException);
 
         // when
-        final Try<String> result = future.handle(toTry()).get();
+        final CompletableFuture<Try<String>> resultFuture = future.handle(toTry());
 
         // then
-        assertThat(result).isEqualTo(Try.failure(inputException));
+        assertThat(resultFuture).isCompletedWithValue(Try.failure(inputException));
     }
 
 }
