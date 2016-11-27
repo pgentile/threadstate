@@ -139,7 +139,7 @@ public class CompletableFuturesTest {
         final Exception exception = new Exception();
 
         // when
-        final CompletableFuture<?> future = completedExceptionally(exception);
+        final CompletableFuture<?> future = completedExceptionally(exception).thenApply(s -> "VALUE");
 
         // then
         assertThat(future).isCompletedExceptionally();
@@ -210,7 +210,7 @@ public class CompletableFuturesTest {
     @Test
     public void should_transform_failed_future_to_empty_optional() throws Exception {
         // given
-        final CompletableFuture<String> future = completedExceptionally(new RuntimeException());
+        final CompletableFuture<String> future = completedExceptionally(new RuntimeException()).thenApply(s -> "VALUE");
 
         // when
         final CompletableFuture<Optional<String>> resultFuture = future.handle(toOptional());
@@ -236,7 +236,7 @@ public class CompletableFuturesTest {
     public void should_unwrap_exception_in_handle_method() throws Exception {
         // given
         final RuntimeException inputException = new RuntimeException();
-        final CompletableFuture<String> future = completedExceptionally(inputException);
+        final CompletableFuture<String> future = completedExceptionally(inputException).thenApply(s -> "VALUE");
 
         // when
         final CompletableFuture<Boolean> resultFuture = future.handle(withUnwrappedException((value, exception) -> {
@@ -251,7 +251,7 @@ public class CompletableFuturesTest {
     public void should_unwrap_exception_in_exceptionally_method() throws Exception {
         // given
         final RuntimeException inputException = new RuntimeException();
-        final CompletableFuture<Boolean> future = completedExceptionally(inputException);
+        final CompletableFuture<Boolean> future = completedExceptionally(inputException).thenApply(s -> false);
 
         // when
         final CompletableFuture<Boolean> resultFuture = future.exceptionally(withUnwrappedException(exception -> {
@@ -279,7 +279,7 @@ public class CompletableFuturesTest {
     public void should_transform_failed_future_to_failed_try() throws Exception {
         // given
         final RuntimeException inputException = new RuntimeException();
-        final CompletableFuture<String> future = completedExceptionally(inputException);
+        final CompletableFuture<String> future = completedExceptionally(inputException).thenApply(s -> "VALUE");
 
         // when
         final CompletableFuture<Try<String>> resultFuture = future.handle(toTry());

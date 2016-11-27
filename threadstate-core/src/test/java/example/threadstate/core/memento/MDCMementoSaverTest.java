@@ -1,6 +1,5 @@
-package example.threadstate.slf4j;
+package example.threadstate.core.memento;
 
-import example.threadstate.core.memento.ThreadStateMemento;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

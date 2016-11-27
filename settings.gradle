@@ -2,5 +2,4 @@ rootProject.name = 'threadstate'
 
 include "${rootProject.name}-core"
 include "${rootProject.name}-spring"
-include "${rootProject.name}-slf4j"
 include "${rootProject.name}-examples"

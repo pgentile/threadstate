@@ -6,7 +6,7 @@ buildscript {
     }
 
     dependencies {
-        classpath('org.springframework.boot:spring-boot-gradle-plugin:1.4.0.RELEASE')
+        classpath('org.springframework.boot:spring-boot-gradle-plugin:1.4.2.RELEASE')
     }
 
 }
@@ -38,11 +38,13 @@ class BaseJavaProjectPlugin implements Plugin<Project> {
 
         // Versions des dépendances du projet
         project.ext.versions = [
-            spring : '4.3.2.RELEASE',
-            slf4j  : '1.7.21',
-            junit  : '4.12',
-            mockito: '1.10.19',
-            assertj: '3.5.2',
+            spring        : '4.3.4.RELEASE',
+            springSecurity: '4.2.0.RELEASE',
+            slf4j         : '1.7.21',
+            junit         : '4.12',
+            mockito       : '1.10.19',
+            assertj       : '3.5.2',
+            javaslang     : '2.0.5',
         ]
 
         project.dependencies {
@@ -88,7 +90,7 @@ subprojects {
 project("${rootProject.name}-core") {
 
     dependencies {
-        compile group: 'io.javaslang', name: 'javaslang', version: '2.0.3'
+        compile "io.javaslang:javaslang:${versions.javaslang}"
     }
 
 }
@@ -97,17 +99,9 @@ project("${rootProject.name}-spring") {
 
     dependencies {
         compile project(":${rootProject.name}-core")
-        compile "org.springframework:spring-context:${versions.spring}"
-        compile "org.springframework:spring-web:${versions.spring}"
-    }
-
-}
-
-project("${rootProject.name}-slf4j") {
-
-    dependencies {
-        compile project(":${rootProject.name}-core")
-        testCompile "org.slf4j:slf4j-simple:${project.versions.slf4j}"
+        compileOnly "org.springframework:spring-web:${versions.spring}"
+        compileOnly "org.springframework.security:spring-security-web:${versions.springSecurity}"
+        testCompile "org.springframework:spring-context:${versions.spring}"
     }
 
 }
@@ -118,10 +112,10 @@ project("${rootProject.name}-examples") {
 
     dependencies {
         compile project(":${rootProject.name}-core")
-        compile project(":${rootProject.name}-slf4j")
         compile project(":${rootProject.name}-spring")
         compile 'org.springframework.boot:spring-boot-starter-jersey'
-        compile 'com.google.guava:guava:19.0'
+        compile 'org.springframework.boot:spring-boot-starter-security'
+        compile 'com.google.guava:guava:20.0'
     }
 
 }

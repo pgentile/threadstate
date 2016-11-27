@@ -9,7 +9,23 @@ public class RequestContextMementoSaver implements ThreadStateMementoSaver {
 
     @Override
     public ThreadStateMemento save() {
-        final RequestAttributes attributes = RequestContextHolder.currentRequestAttributes();
+        final RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+
+        if (attributes == null) {
+            return new ThreadStateMemento() {
+
+                @Override
+                public void restore() {
+                    RequestContextHolder.resetRequestAttributes();
+                }
+
+                @Override
+                public void cleanup() {
+                    RequestContextHolder.resetRequestAttributes();
+                }
+
+            };
+        }
 
         return new ThreadStateMemento() {
 

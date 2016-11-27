@@ -117,7 +117,7 @@ public final class CompletableFutures {
     public static <T> BiFunction<T, Throwable, Optional<T>> toOptional() {
         return (value, exception) -> {
             if (exception != null) {
-                LOGGER.debug("Ignoring exception", exception);
+                LOGGER.trace("Ignoring exception", exception);
                 return Optional.empty();
             }
             return Optional.of(value);

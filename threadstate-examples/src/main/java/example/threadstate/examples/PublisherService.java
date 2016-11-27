@@ -2,6 +2,7 @@ package example.threadstate.examples;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,7 +12,9 @@ public class PublisherService {
 
     public void publish() {
         LOGGER.info("Publish...");
-        throw new RuntimeException("Publish failed");
+
+        final String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
+        LOGGER.info("Principal is {}", principalName);
     }
 
 }

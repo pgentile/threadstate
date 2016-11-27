@@ -1,7 +1,5 @@
 package example.threadstate.examples;
 
-import example.threadstate.core.concurrent.CompletableFutures;
-import example.threadstate.core.retry.AsyncRetryExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +13,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+
+import static example.threadstate.core.concurrent.CompletableFutures.withUnwrappedException;
 
 @Component
 @Path("/")
@@ -24,11 +25,11 @@ public class HelloResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(HelloResource.class);
 
     @Autowired
-    @Qualifier("defaultExecutor")
     private ExecutorService executor;
 
     @Autowired
-    private AsyncRetryExecutor asyncRetryExecutor;
+    @Qualifier("asyncTaskExecutor")
+    private ExecutorService asyncExecutor;
 
     @Autowired
     private PublisherService publisherService;
@@ -39,15 +40,15 @@ public class HelloResource {
         executor.submit(() -> {
             LOGGER.info("Sending response in other thread...");
             LOGGER.info("Request content: {}", RequestContextHolder.getRequestAttributes());
+
+            CompletableFuture.runAsync(publisherService::publish, asyncExecutor)
+                .exceptionally(withUnwrappedException(e -> {
+                    LOGGER.error("Publish failed", e);
+                    return null;
+                }));
+
             asyncResponse.resume("Home");
         });
-
-        asyncRetryExecutor.submit(publisherService::publish)
-            .whenComplete((ignored, e) -> {
-                if (e != null) {
-                    LOGGER.error("Publish failed", CompletableFutures.unwrapException(e));
-                }
-            });
 
         LOGGER.info("Detached!");
     }
